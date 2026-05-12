@@ -16,10 +16,7 @@ BAD_VERSION_TERMS = [
     "clean version",
     "radio edit",
     "radio version",
-    "edited",
     "censored",
-    "censor",
-    "family friendly",
     "no swearing",
     "instrumental",
     "karaoke",
@@ -28,7 +25,6 @@ BAD_VERSION_TERMS = [
     "remix",
     "slowed",
     "reverb",
-    "nightcore",
 ]
 
 GOOD_VERSION_TERMS = [
@@ -44,7 +40,7 @@ def clean(text):
     return re.sub(r'[\\/*?:"<>|]', "", text)
 
 
-def search_results(query, count=5):
+def search_results(query, count=3):
     cmd = [
         "yt-dlp",
         f"ytsearch{count}:{query}",
@@ -101,7 +97,7 @@ def score_result(info, artist, track):
 
     for term in BAD_VERSION_TERMS:
         if term in title:
-            score -= 40
+            score -= 30
 
     return score
 
@@ -112,7 +108,7 @@ def download(row):
 
     filename = clean(f"{artist} - {track}.%(ext)s")
 
-    query = f'"{artist}" "{track}" "Topic"'
+    query = f'"{artist}" "{track}" "Official Audio" "Topic"'
 
     print(f"Searching: {artist} - {track}")
 
