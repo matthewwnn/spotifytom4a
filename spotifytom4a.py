@@ -12,27 +12,28 @@ MAX_WORKERS = 5
 
 
 BAD_VERSION_TERMS = [
-    "clean",
     "clean version",
+    "(clean)",
+    "clean edit",
+    "music video",
+    "official video",
     "radio edit",
     "radio version",
-    "censored",
-    "no swearing",
     "instrumental",
-    "karaoke",
     "cover",
-    "live",
-    "remix",
+    "reaction",
+    "lyric",
+    "8D",
+    "lyrics",
     "slowed",
     "reverb",
+    "no ads",
+    "one hour loop",
 ]
 
 GOOD_VERSION_TERMS = [
     "official audio",
-    "audio",
     "topic",
-    "provided to youtube",
-    "explicit",
 ]
 
 
@@ -44,6 +45,8 @@ def search_results(query, count=3):
     cmd = [
         "yt-dlp",
         f"ytsearch{count}:{query}",
+        "--extractor-args",
+        "youtube:music",
 
         #get json search results
         "--dump-json",
@@ -75,21 +78,22 @@ def score_result(info, artist, track):
     uploader = (info.get("uploader") or "").lower()
     channel = (info.get("channel") or "").lower()
 
-    artist_lower = artist.lower()
+    artists = [a.strip().lower() for a in artist.split(",")]
     track_lower = track.lower()
 
     score = 0
 
-    #artist & trackname = good
-    if artist_lower in title:
-        score += 20
+    #artist(s) in title = good
+    for a in artists:
+	    if a in title:
+       		 score += 0
 
     if track_lower in title:
-        score += 30
+        score += 5
 
     #youtube topic channels are good
     if "topic" in uploader or "topic" in channel:
-        score += 25
+        score += 10
 
     for term in GOOD_VERSION_TERMS:
         if term in title:
@@ -106,14 +110,16 @@ def download(row):
     track = row["Track Name"].strip()
     artist = row["Artist Name(s)"].strip()
 
-    filename = clean(f"{artist} - {track}.%(ext)s")
+    filename_artist = artist.replace(";", " ").replace(",", " ")
+    filename = clean(f"{track} - {filename_artist}.%(ext)s")
 
-    query = f'"{artist}" "{track}" "Official Audio" "Topic"'
+    search_artist = artist.replace(";", " ").replace(",", " ")
+    query = f"{track} {search_artist} Official Audio"
 
     print(f"Searching: {artist} - {track}")
 
     try:
-        results = search_results(query, count=5)
+        results = search_results(query, count=3)
     except subprocess.CalledProcessError:
         print(f"FAILED SEARCH: {artist} - {track}")
         return
@@ -127,6 +133,7 @@ def download(row):
         key=lambda info: score_result(info, artist, track)
     )
 
+    best_score = score_result(best, artist, track)
     best_title = best.get("title", "Unknown title")
     best_id = best.get("id")
 
@@ -137,11 +144,15 @@ def download(row):
     video_url = f"https://www.youtube.com/watch?v={best_id}"
 
     print(f"Downloading: {artist} - {track}")
-    print(f"Selected: {best_title}")
+    print(f"Selected: {best_title} | Score: {best_score}")
 
     cmd = [
         "yt-dlp",
         video_url,
+
+	#use youtube music
+	"--extractor-args",
+	"youtube:music",
 
         #best audio
         "-f", "bestaudio[ext=m4a]/bestaudio",
